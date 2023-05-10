@@ -2,14 +2,16 @@
 // Created by essethon on 5/5/23. Adapted from leveldb/benchmarks/db_bench.cc.
 //
 
-#include <cassert>
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include <cassert>
 #include <chrono>
 #include <format>
 #include <iostream>
 
+#include "port/port.h"
+#include "port/port_stdcxx.h"
 #include "util/histogram.h"
 #include "util/random.h"
 
@@ -23,7 +25,7 @@ namespace spatialkv {
 // since the start of the day.)
 uint64_t NowMicros() {
   static constexpr uint64_t kUsecondsPerSecond = 1000000;
-  struct ::timeval tv{};
+  struct ::timeval tv {};
   ::gettimeofday(&tv, nullptr);
   return static_cast<uint64_t>(tv.tv_sec) * kUsecondsPerSecond + tv.tv_usec;
 }
@@ -31,7 +33,7 @@ uint64_t NowMicros() {
 Slice RandomString(RandomInt& rnd, int len, std::string* dst) {
   dst->resize(len);
   for (int i = 0; i < len; i++) {
-    (*dst)[i] = static_cast<char>(rnd(32,127));  // ' ' .. '~'
+    (*dst)[i] = static_cast<char>(rnd(32, 127));  // ' ' .. '~'
   }
   return *dst;
 }
@@ -127,6 +129,32 @@ class Stats {
       std::fflush(stderr);
     }
   }
+};
+
+struct SharedState {
+  port::Mutex mu;
+  port::CondVar cv GUARDED_BY(mu);
+  int total GUARDED_BY(mu);
+
+  // Each thread goes through the following states:
+  //    (1) initializing
+  //    (2) waiting for others to be initialized
+  //    (3) running
+  //    (4) done
+
+  int num_initialized GUARDED_BY(mu);
+  int num_done GUARDED_BY(mu);
+  bool start GUARDED_BY(mu);
+
+  SharedState(int total)
+      : cv(&mu), total(total), num_initialized(0), num_done(0), start(false) {}
+};
+
+struct ThreadState {
+  int tid;         // 0..n-1 when running in n threads
+  RandomInt rand;  // Has different seeds for different threads
+  Stats stats;
+  SharedState* shared;
 };
 
 class Benchmark {
