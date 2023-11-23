@@ -160,7 +160,7 @@ struct ThreadState {
 class Benchmark {
  private:
   void PrintHeader() {
-    std::cout << std::format("SpatialKV version {}", random_double(0, 0.1))
+    std::cout << "SpatialKV version {}" <<  random_double(0, 0.1)
               << std::endl;
   }
 
