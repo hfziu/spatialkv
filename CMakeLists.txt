@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find LevelDB
 # find_package(LevelDB REQUIRED)
-link_directories(${LEVELDB_LIB_DIR})
+link_directories(${CUSTOM_LIB_DIR})
 
 add_library(spatialkv
   "util/format.cc"
@@ -20,7 +20,7 @@ add_library(spatialkv
 target_include_directories(spatialkv
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${LEVELDB_INCLUDE_DIR}
+    ${CUSTOM_INCLUDE_DIR}
 )
 
 target_link_libraries(spatialkv leveldb s2)
@@ -42,4 +42,5 @@ endfunction()
 
 # Add tests
 spatialkv_test("util/leveldb_test.cc")
+spatialkv_test("util/s2_test.cc")
 
